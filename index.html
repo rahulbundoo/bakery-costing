@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bakery Costing App</title>
+        <!-- Bakery‑themed fonts from Google. If offline these will fall back to standard fonts -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUa3Y2n1uJU1lCoUb4o4KIrA27TjFNf9F2Io4x67L0d2CvV1DaKzLGpYcVYV" crossorigin="anonymous">
+
+    <style>
+        /*
+         * App-wide styles
+         *
+         * The original implementation used raw fieldsets and plain HTML elements
+         * with minimal styling.  To make the user experience more pleasant and
+         * professional, the layout has been rebuilt around a card system with
+         * consistent padding, modern typography and subtle shadows.  These
+         * adjustments improve readability and make the form look cohesive on
+         * laptops, tablets and phones without touching any of the element IDs
+         * relied upon by script.js.
+         */
+        :root {
+            /* Bakery palette: soft pinks and warm browns reminiscent of sweet treats */
+            --bg-color: #FFF5F7;
+            --card-bg: #FFFFFF;
+            --card-border-radius: 10px;
+            --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            --primary-color: #C38179;
+            --primary-hover: #A56760;
+            --text-color: #6D4C41;
+            --muted-color: #9E7C74;
+            --border-color: #EAD2D0;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(14px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes tabReveal {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes valuePulse {
+            0% {
+                transform: scale(1);
+            }
+            35% {
+                transform: scale(1.045);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        @keyframes rowEnter {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes rowExit {
+            to {
+                opacity: 0;
+                transform: translateX(14px);
+            }
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Open Sans', Arial, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            color: var(--text-color);
+        }
+
+        h1 {
+            text-align: center;
+            margin: 0;
+            padding: 20px 0;
+            font-family: 'Pacifico', cursive;
+            font-size: 2.25rem;
+            color: var(--primary-color);
+            animation: fadeInDown 0.55s ease both;
+        }
+
+        .container {
+            /* Allow the main container to stretch across the screen to give cards more horizontal space. */
+            width: min(1320px, 100%);
+            margin: 0 auto;
+            padding: 0 20px 40px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: var(--card-border-radius);
+            box-shadow: var(--card-shadow);
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: transform 0.2s ease, box-shadow 0.25s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(195, 129, 121, 0.18);
+        }
+
+        .card h2 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-family: 'Open Sans', sans-serif;
+            font-size: 1.35rem;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+            color: var(--primary-color);
+        }
+
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        .form-row label {
+            flex: 0 0 35%;
+            max-width: 35%;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--muted-color);
+        }
+
+        .form-row input,
+        .form-row select {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 0.9rem;
+            color: var(--text-color);
+            box-sizing: border-box;
+        }
+        .form-row .required {
+            color: #dc3545;
+            margin-left: 2px;
+        }
+        .helper-text {
+            margin: 0 0 12px 0;
+            color: var(--muted-color);
+            font-size: 0.85rem;
+        }
+        .status-message {
+            display: none;
+            margin-top: 10px;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            border: 1px solid transparent;
+        }
+        .status-message.error {
+            display: block;
+            color: #842029;
+            background: #f8d7da;
+            border-color: #f5c2c7;
+        }
+        .status-message.success {
+            display: block;
+            color: #0f5132;
+            background: #d1e7dd;
+            border-color: #badbcc;
+        }
+        .is-invalid-input {
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.15);
+        }
+        .value-changed {
+            animation: valuePulse 0.35s ease;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        table thead th {
+            background-color: #f3f4f6;
+            color: var(--text-color);
+            padding: 10px 8px;
+            text-align: left;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        table tbody td {
+            padding: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        table tbody td:last-child {
+            /* Align the actions button to the center */
+            text-align: center;
+        }
+
+        .btn {
+            display: inline-block;
+            background-color: var(--primary-color);
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-right: 8px;
+            margin-top: 12px;
+            transition: background-color 0.2s ease, transform 0.16s ease, box-shadow 0.2s ease;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 14px rgba(195, 129, 121, 0.26);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+
+        /* Style the remove buttons inside the ingredients table */
+        table button {
+            background-color: var(--primary-hover);
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+        table button:hover {
+            background-color: var(--primary-color);
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+        }
+
+        .btn-danger:hover {
+            background-color: #a71d2a;
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            row-gap: 8px;
+            column-gap: 10px;
+            font-size: 0.9rem;
+        }
+
+        .header-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-top-left-radius: var(--card-border-radius);
+            border-top-right-radius: var(--card-border-radius);
+            margin-bottom: 0;
+            animation: fadeInDown 0.5s ease both;
+        }
+
+        .summary div {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+        }
+
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 20px;
+        }
+        .order-actions {
+            position: sticky;
+            bottom: 10px;
+            z-index: 12;
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(255, 245, 247, 0.95);
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(2px);
+        }
+        .button-group .btn {
+            margin: 0;
+        }
+
+        /* Maintain full viewport height but don’t hide overflow outright so responsive layouts can adjust.
+           The app container further down will handle overflow for specific areas. */
+        html {
+            min-height: 100%;
+        }
+        body {
+            min-height: 100%;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+
+        /* Tab navigation styles */
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            list-style: none;
+            padding-left: 0;
+            border-bottom: 2px solid var(--border-color);
+            animation: fadeInDown 0.65s ease both;
+        }
+
+        .tabs .tab {
+            flex: 1;
+            text-align: center;
+            padding: 12px 0;
+            cursor: pointer;
+            color: var(--primary-color);
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-bottom: none;
+            margin-right: 4px;
+            border-top-left-radius: var(--card-border-radius);
+            border-top-right-radius: var(--card-border-radius);
+            transition: background-color 0.3s ease, transform 0.22s ease, box-shadow 0.24s ease;
+            font-weight: 600;
+        }
+
+        .tabs .tab:last-child {
+            margin-right: 0;
+        }
+
+        .tabs .tab.active {
+            background-color: var(--card-bg);
+            border-color: var(--border-color);
+            color: var(--primary-hover);
+            box-shadow: 0 -3px 10px rgba(195, 129, 121, 0.18);
+        }
+
+        .tabs .tab:hover {
+            background-color: var(--card-bg);
+            transform: translateY(-2px);
+        }
+
+        /* Tab content containers hidden by default */
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+            animation: tabReveal 0.28s ease both;
+        }
+        .tab-content.active .card {
+            animation: fadeInUp 0.32s ease both;
+        }
+        .tab-content.active .card:nth-of-type(2) {
+            animation-delay: 0.05s;
+        }
+        .tab-content.active .card:nth-of-type(3) {
+            animation-delay: 0.1s;
+        }
+        .tab-content.active .card:nth-of-type(4) {
+            animation-delay: 0.15s;
+        }
+
+        /* Grid layout for order entry cards to reduce vertical scrolling.
+           Increase the minimum size so fewer rows are needed on larger screens. */
+        .entry-grid {
+            display: grid;
+            gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+        }
+
+
+        /* Scroll only in the order log table */
+        .log-table-container {
+            max-height: 60vh;
+            overflow: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Add scroll to ingredients sections so long lists don’t elongate the page.
+           The order entry ingredients section should only scroll vertically and never cause
+           horizontal scrolling. The list in the Ingredients tab is given a taller max height. */
+        .ingredients-table-container {
+            max-height: 35vh;
+            overflow: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .ingredients-list-container {
+            max-height: 50vh;
+            overflow: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .ingredients-table-container table {
+            min-width: 620px;
+        }
+        .ingredients-list-container table {
+            min-width: 760px;
+        }
+        .log-table-container table {
+            min-width: 1100px;
+        }
+        .ingredients-table-container th,
+        .ingredients-table-container td,
+        .ingredients-list-container th,
+        .ingredients-list-container td,
+        .log-table-container th,
+        .log-table-container td {
+            white-space: nowrap;
+        }
+
+        /* Summary bar at bottom of order entry showing key figures in a compact layout */
+        .summary-bar {
+            background-color: var(--card-bg);
+            border-radius: var(--card-border-radius);
+            box-shadow: var(--card-shadow);
+            padding: 12px 16px;
+            margin-top: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            font-size: 0.9rem;
+        }
+        .summary-bar div {
+            flex: 1 1 45%;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .summary-bar span.value {
+            font-weight: 600;
+            color: var(--primary-color);
+            transform-origin: center;
+        }
+
+        #ingredientsBody tr.row-enter {
+            animation: rowEnter 0.25s ease;
+        }
+
+        #ingredientsBody tr.row-exit {
+            animation: rowExit 0.18s ease forwards;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .header-image,
+            h1,
+            .tabs,
+            .tab-content.active,
+            .tab-content.active .card,
+            #ingredientsBody tr.row-enter,
+            #ingredientsBody tr.row-exit,
+            .value-changed {
+                animation: none !important;
+            }
+            .card,
+            .btn,
+            .tabs .tab {
+                transition: none !important;
+            }
+        }
+
+        @media (max-width: 991.98px) {
+            .container {
+                padding: 0 14px 28px;
+            }
+            .entry-grid {
+                gap: 14px;
+                grid-template-columns: 1fr;
+            }
+            .form-row label {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+            .form-row input,
+            .form-row select {
+                flex: 0 0 100%;
+                width: 100%;
+                min-width: 0;
+            }
+            .summary {
+                grid-template-columns: 1fr;
+            }
+            .summary-bar div {
+                flex: 1 1 100%;
+            }
+        }
+
+        @media (max-width: 767.98px) {
+            h1 {
+                font-size: 1.8rem;
+                padding: 14px 0;
+            }
+            .header-image {
+                height: 140px;
+            }
+            .tabs {
+                overflow-x: auto;
+                overflow-y: hidden;
+                flex-wrap: nowrap;
+                padding-bottom: 4px;
+                scrollbar-width: thin;
+            }
+            .tabs .tab {
+                flex: 0 0 auto;
+                min-width: 128px;
+                white-space: nowrap;
+                padding: 10px 12px;
+                margin-right: 6px;
+            }
+            .card {
+                padding: 14px;
+            }
+            .button-group {
+                justify-content: stretch;
+            }
+            .button-group .btn {
+                flex: 1 1 calc(50% - 8px);
+                min-width: 130px;
+            }
+            .order-actions {
+                bottom: 6px;
+                padding: 8px;
+            }
+            .log-table-container,
+            .ingredients-table-container,
+            .ingredients-list-container {
+                max-height: none;
+            }
+        }
+    </style>
+    <!-- SheetJS library for Excel export -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+<div class="container">
+    <!-- Decorative header image conveys the personality of a boutique bakery -->
+    <img src="header.png" alt="Bakery banner" class="header-image">
+    <h1>Bakery Costing App</h1>
+
+    <!-- Tab navigation -->
+    <ul class="tabs">
+        <li class="tab active" data-target="orderEntryTab">Order Entry</li>
+        <li class="tab" data-target="orderLogTab">Order Log</li>
+        <li class="tab" data-target="ingredientsTab">Ingredients</li>
+        <li class="tab" data-target="setupTab">Setup</li>
+    </ul>
+
+    <!-- Order Entry Tab -->
+    <div id="orderEntryTab" class="tab-content active">
+        <div class="entry-grid">
+            <!-- Order Details Card -->
+            <div class="card">
+                <h2>Order Details</h2>
+                <p class="helper-text">Fill in required fields before adding the order to the log.</p>
+        <div class="form-row">
+                    <label for="orderId">Order ID:</label>
+                    <!-- Auto-generated order number is read-only -->
+                    <input type="text" id="orderId" readonly>
+                </div>
+                <div class="form-row">
+                    <label for="customer">Customer:<span class="required">*</span></label>
+                    <input type="text" id="customer" required>
+                </div>
+                <div class="form-row">
+                    <label for="product">Product/Cake:<span class="required">*</span></label>
+                    <input type="text" id="product" required>
+                </div>
+                <div class="form-row">
+                    <label for="orderDate">Date:</label>
+                    <input type="date" id="orderDate">
+                </div>
+                <div class="form-row">
+                    <label for="quantity">Quantity:<span class="required">*</span></label>
+                    <input type="number" id="quantity" min="1" value="1" required>
+                </div>
+            </div>
+
+            <!-- Pricing Inputs Card -->
+            <div class="card">
+                <h2>Pricing Inputs</h2>
+                <p class="helper-text">Values here affect cost, quote, and profitability in real time.</p>
+                <div class="form-row">
+                    <label for="packagingCost">Packaging cost:</label>
+                    <input type="number" id="packagingCost" step="0.01" value="0">
+                </div>
+                <div class="form-row">
+                    <label for="laborHours">Labor hours:</label>
+                    <input type="number" id="laborHours" step="0.01" value="0">
+                </div>
+                <div class="form-row">
+                    <label for="deliveryKm">Delivery distance (km):</label>
+                    <input type="number" id="deliveryKm" step="0.1" value="0">
+                </div>
+                <div class="form-row">
+                    <label for="extraOverhead">Extra overhead:</label>
+                    <input type="number" id="extraOverhead" step="0.01" value="0">
+                </div>
+                <div class="form-row">
+                    <label for="targetMargin">Target margin (0-1):</label>
+                    <input type="number" id="targetMargin" step="0.01" value="0.35">
+                </div>
+                <div class="form-row">
+                    <label for="actualPrice">Actual selling price:</label>
+                    <input type="number" id="actualPrice" step="0.01" value="0">
+                </div>
+            </div>
+
+            <!-- Ingredients Card -->
+            <div class="card">
+                <h2>Ingredients Used (per cake)</h2>
+                <p class="helper-text">Add at least one ingredient row with quantity before saving the order.</p>
+                <div class="ingredients-table-container">
+                    <table id="ingredientsTable">
+                        <thead>
+                        <tr>
+                            <th>Ingredient</th>
+                            <th>Unit Cost</th>
+                            <th>Qty Used</th>
+                            <th>Line Cost</th>
+                            <th>Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody id="ingredientsBody">
+                        <!-- Ingredient rows go here -->
+                        </tbody>
+                    </table>
+                </div>
+                <button id="addIngredientBtn" class="btn">Add Ingredient</button>
+            </div>
+
+            <!-- Hidden Quote Summary Card (kept for calculation but not displayed) -->
+            <div class="card" style="display:none;">
+                <h2>Quote Summary (hidden)</h2>
+                <div class="summary">
+                    <div><span>Ingredient subtotal:</span><span id="ingSubtotal">0.00</span></div>
+                    <div><span>Packaging cost:</span><span id="summaryPackaging">0.00</span></div>
+                    <div><span>Labor cost:</span><span id="laborCost">0.00</span></div>
+                    <div><span>Delivery cost:</span><span id="deliveryCost">0.00</span></div>
+                    <div><span>Extra overhead:</span><span id="summaryOverhead">0.00</span></div>
+                    <div><span>Total cost:</span><span id="totalCost">0.00</span></div>
+                    <div><span>Suggested price:</span><span id="suggestedPrice">0.00</span></div>
+                    <div><span>Rounded quote:</span><span id="roundedQuote">0.00</span></div>
+                    <div><span>Profit @ actual:</span><span id="profitActual">0.00</span></div>
+                    <div><span>Margin @ actual:</span><span id="marginActual">0.00</span></div>
+                </div>
+            </div>
+        </div>
+        <!-- Order Entry Actions -->
+        <div class="button-group order-actions">
+            <button id="calculateBtn" class="btn">Calculate</button>
+            <button id="exportBtn" class="btn">Export to Excel</button>
+            <button id="pushLogBtn" class="btn">Add to Log</button>
+            <button id="cancelEditBtn" class="btn btn-danger" style="display:none;">Cancel Edit</button>
+            <button id="clearBtn" class="btn">Clear</button>
+        </div>
+        <div id="orderEntryFeedback" class="status-message" role="status" aria-live="polite"></div>
+
+        <!-- Compact summary bar to display key values for the current order. This
+             replaces the large quote summary card in the original template.
+             Values are updated programmatically by calculateTotals() in
+             script.js. -->
+        <div class="summary-bar" id="summaryBar">
+            <div><span>Total cost:</span><span id="barTotalCost" class="value">0.00</span></div>
+            <div><span>Suggested price:</span><span id="barSuggestedPrice" class="value">0.00</span></div>
+            <div><span>Profit:</span><span id="barProfit" class="value">0.00</span></div>
+            <div><span>Margin:</span><span id="barMargin" class="value">0.00%</span></div>
+        </div>
+    </div>
+
+    <!-- Order Log Tab -->
+    <div id="orderLogTab" class="tab-content">
+        <div class="card">
+            <h2>Order Log</h2>
+            <div class="log-table-container">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Order ID</th>
+                        <th>Customer</th>
+                        <th>Product</th>
+                        <th>Qty</th>
+                        <th>Total Cost</th>
+                        <th>Suggested Price</th>
+                        <th>Actual Price</th>
+                        <th>Profit</th>
+                        <th>Margin</th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody id="orderLogBody">
+                    <!-- Log rows rendered here -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="button-group">
+                <button id="clearLogBtn" class="btn btn-danger">Clear Log</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ingredients Tab -->
+    <div id="ingredientsTab" class="tab-content">
+        <div class="card">
+            <h2>Ingredients Management</h2>
+            <div class="ingredients-list-container">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Purchase Qty</th>
+                        <th>Unit</th>
+                        <th>Package Cost</th>
+                        <th>Waste %</th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody id="ingredientsListBody">
+                    <!-- ingredient edit rows go here -->
+                    </tbody>
+                </table>
+            </div>
+            <button id="addIngredientListBtn" class="btn">Add Ingredient</button>
+            <button id="saveIngredientsBtn" class="btn">Save Ingredients</button>
+        </div>
+    </div>
+
+    <!-- Setup Tab -->
+    <div id="setupTab" class="tab-content">
+        <div class="card">
+            <h2>Setup</h2>
+            <div class="form-row">
+                <label for="laborRate">Labor rate (per hour):</label>
+                <input type="number" id="laborRate" step="0.01">
+            </div>
+            <div class="form-row">
+                <label for="deliveryRate">Delivery rate (per km):</label>
+                <input type="number" id="deliveryRate" step="0.01">
+            </div>
+            <div class="form-row">
+                <label for="defaultMargin">Default margin (0-1):</label>
+                <input type="number" id="defaultMargin" step="0.01">
+            </div>
+            <div class="form-row">
+                <label for="defaultOverhead">Default overhead:</label>
+                <input type="number" id="defaultOverhead" step="0.01">
+            </div>
+            <div class="form-row">
+                <label for="roundingIncrement">Quote rounding increment:</label>
+                <input type="number" id="roundingIncrement" step="0.01">
+            </div>
+            <div class="form-row">
+                <label for="templatePath">Repo template path:</label>
+                <input type="text" id="templatePath" placeholder="bakery_costing_template_final.xlsx">
+            </div>
+            <button id="saveSetupBtn" class="btn">Save Setup</button>
+            <button id="reloadTemplateBtn" class="btn">Reload Template</button>
+        </div>
+    </div>
+
+    <!-- Loader overlay displayed during long operations -->
+    <div id="loadingOverlay" class="position-fixed top-0 start-0 w-100 h-100 align-items-center justify-content-center"
+         style="background: rgba(255,255,255,0.5); display:none; z-index: 2000;">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>
+    <!-- Toast container for notifications -->
+    <div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 3000;"></div>
+    <!-- Template base64 string (defines global TEMPLATE_B64) -->
+    <script src="template_base64.js"></script>
+    <!-- Bootstrap JS for toasts and other UI components -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- xlsx-populate keeps workbook formatting/layout intact during export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-populate/browser/xlsx-populate.min.js"></script>
+    <!-- Main script -->
+    <script src="script.js"></script>
+</div>
+</body>
+</html>
